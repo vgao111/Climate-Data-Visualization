@@ -41,7 +41,7 @@
 
   function buildMap() {
     const W = mapNode.clientWidth || 960;
-    const H = Math.round(W * 0.5);
+    const H = Math.min(Math.round(W * 0.54), Math.round(window.innerHeight * 0.72));
     mapNode.style.height = H + 'px';
     mapSvg.attr('viewBox', `0 0 ${W} ${H}`);
 
@@ -51,14 +51,14 @@
     mapSvg.selectAll('*').remove();
 
     // Ocean
-    mapSvg.append('rect').attr('width', W).attr('height', H).attr('fill', '#090e1a');
+    mapSvg.append('rect').attr('width', W).attr('height', H).attr('fill', '#b3d4e8');
 
     // Graticule
     mapSvg.append('path')
       .datum(d3.geoGraticule()())
       .attr('d', path)
       .attr('fill', 'none')
-      .attr('stroke', '#151d2b')
+      .attr('stroke', '#8ab0cc')
       .attr('stroke-width', 0.4);
 
     // Sphere border
@@ -66,8 +66,8 @@
       .datum({ type: 'Sphere' })
       .attr('d', path)
       .attr('fill', 'none')
-      .attr('stroke', '#30363d')
-      .attr('stroke-width', 0.6);
+      .attr('stroke', '#6a9ab8')
+      .attr('stroke-width', 0.8);
 
     // Countries
     mapSvg.selectAll('.country')
@@ -115,8 +115,8 @@
     const sign = cd.anomaly >= 0 ? '+' : '';
     tooltip.innerHTML =
       `<div class="tt-name">${cd.name}</div>` +
-      `<div class="tt-val">${sign}${cd.anomaly.toFixed(2)}°C vs 1850–1900</div>` +
-      `<div class="tt-hint">Click to explore</div>`;
+      `<div class="tt-val">${sign}${cd.anomaly.toFixed(2)}°C warming</div>` +
+      `<div class="tt-hint">2000–2014 avg vs 1850–1900 baseline · Click to explore</div>`;
     tooltip.classList.add('visible');
   }
 
