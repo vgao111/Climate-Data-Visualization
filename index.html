@@ -59,36 +59,6 @@
 
     </div>
 
-    <!-- ── Write-up ────────────────────────────────────────────────────────── -->
-    <section id="writeup">
-      <h2>About This Visualization</h2>
-
-      <h3>Motivation</h3>
-      <p>
-        We wanted to make the abstract reality of climate change personally tangible.
-        Global averages hide enormous regional variation — some places have warmed
-        three times faster than others. By letting users click their own country or
-        any country they're curious about, we turn a planetary dataset into a local story.
-      </p>
-
-      <h3>Design Rationale</h3>
-      <p>
-        A choropleth world map was chosen as the entry point because spatial context is
-        the most natural frame for global data. Countries are colored by their
-        2000–2014 mean warming anomaly relative to the 1850–1900 pre-industrial baseline,
-        using a yellow→red sequential scale that intuitively encodes increasing heat.
-        Clicking a country reveals either a full annual anomaly time series (with a
-        10-year rolling mean to smooth noise) or a decade-by-decade bar chart.
-        A year range slider allows users to focus on any sub-period — e.g. just the
-        post-industrial era — enabling comparisons a static view cannot support.
-        Data are pre-aggregated from CMIP6 CESM2 historical simulations using
-        area-weighted country masks via <code>regionmask</code>.
-      </p>
-
-      <h3>Development Process</h3>
-      <p>Our team split the work by…</p>
-    </section>
-
   </main>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
