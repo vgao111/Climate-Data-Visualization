@@ -3,44 +3,96 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>Climate Data Visualization</title>
-
+  <title>Global Climate Explorer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
   <header>
-    <h1>Climate Data Visualization</h1>
-    <p>An interactive D3 visualization exploring environmental data.</p>
+    <h1>Global Climate Explorer</h1>
+    <p>Surface temperature change 1850–2014 · CMIP6 CESM2 · Click any country to explore</p>
   </header>
 
   <main>
-    <section>
-      <h2>Interactive Visualization</h2>
-      <div id="chart"></div>
-    </section>
 
-    <section>
-      <h2>Write-up</h2>
+    <!-- ── View 1: World Map ───────────────────────────────────────────────── -->
+    <div id="map-view">
+      <div id="map-top-bar">
+        <span id="map-hint">Hover a country to preview · Click to explore its full history</span>
+        <div id="legend-wrap">
+          <span class="leg-label">0°C</span>
+          <svg id="legend-svg"></svg>
+          <span class="leg-label">+3°C</span>
+        </div>
+      </div>
+      <svg id="world-map"></svg>
+      <div id="tooltip"></div>
+    </div>
+
+    <!-- ── View 2: Country Detail ──────────────────────────────────────────── -->
+    <div id="detail-view">
+
+      <div id="detail-header">
+        <button id="back-btn">← World Map</button>
+        <div id="country-info">
+          <h2 id="country-name"></h2>
+          <p id="country-stat"></p>
+        </div>
+      </div>
+
+      <div id="controls-row">
+        <div id="metric-tabs">
+          <button class="tab-btn active" data-metric="annual">Annual Anomaly</button>
+          <button class="tab-btn"        data-metric="decadal">Decadal Means</button>
+        </div>
+        <div id="sliders">
+          <label>From <strong id="lbl-start">1850</strong>
+            <input type="range" id="slider-start" min="1850" max="2014" value="1850" />
+          </label>
+          <label>To <strong id="lbl-end">2014</strong>
+            <input type="range" id="slider-end" min="1850" max="2014" value="2014" />
+          </label>
+        </div>
+      </div>
+
+      <svg id="detail-chart"></svg>
+
+    </div>
+
+    <!-- ── Write-up ────────────────────────────────────────────────────────── -->
+    <section id="writeup">
+      <h2>About This Visualization</h2>
 
       <h3>Motivation</h3>
       <p>
-        We are interested in understanding how climate patterns vary across space and time.
+        We wanted to make the abstract reality of climate change personally tangible.
+        Global averages hide enormous regional variation — some places have warmed
+        three times faster than others. By letting users click their own country or
+        any country they're curious about, we turn a planetary dataset into a local story.
       </p>
 
       <h3>Design Rationale</h3>
       <p>
-        We chose these visual encodings and interactions because...
+        A choropleth world map was chosen as the entry point because spatial context is
+        the most natural frame for global data. Countries are colored by their
+        2000–2014 mean warming anomaly relative to the 1850–1900 pre-industrial baseline,
+        using a yellow→red sequential scale that intuitively encodes increasing heat.
+        Clicking a country reveals either a full annual anomaly time series (with a
+        10-year rolling mean to smooth noise) or a decade-by-decade bar chart.
+        A year range slider allows users to focus on any sub-period — e.g. just the
+        post-industrial era — enabling comparisons a static view cannot support.
+        Data are pre-aggregated from CMIP6 CESM2 historical simulations using
+        area-weighted country masks via <code>regionmask</code>.
       </p>
 
       <h3>Development Process</h3>
-      <p>
-        Our team split the work by...
-      </p>
+      <p>Our team split the work by…</p>
     </section>
+
   </main>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <script src="climate.js"></script>
 </body>
 </html>
