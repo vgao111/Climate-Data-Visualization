@@ -112,6 +112,38 @@ for i, (name, number) in enumerate(zip(regions.names, regions.numbers)):
 
 print(f'\nProcessed {len(climate_data)} countries with data.')
 
+# ── 8b. Add aliases for name mismatches between regionmask and the GeoJSON ───
+# regionmask uses full Natural Earth names; the D3 GeoJSON uses short names.
+ALIASES = {
+    'United States of America':               ['USA', 'United States'],
+    'Russian Federation':                     ['Russia'],
+    'Republic of Korea':                      ['South Korea'],
+    'Dem. Rep. Korea':                        ['North Korea'],
+    'Islamic Republic of Iran':               ['Iran'],
+    'Syrian Arab Republic':                   ['Syria'],
+    'United Republic of Tanzania':            ['Tanzania'],
+    'Plurinational State of Bolivia':         ['Bolivia'],
+    'Bolivarian Republic of Venezuela':       ['Venezuela'],
+    "Lao People's Democratic Republic":       ['Laos'],
+    'Czech Republic':                         ['Czech Rep.', 'Czechia'],
+    "Côte d'Ivoire":                          ['Ivory Coast'],
+    'Republic of Moldova':                    ['Moldova'],
+    'Dem. Rep. Congo':                        ['Dem. Rep. Congo', 'DR Congo'],
+    'Republic of Congo':                      ['Congo'],
+    'Libyan Arab Jamahiriya':                 ['Libya'],
+    'Taiwan, Province of China':              ['Taiwan'],
+    'Palestinian Territory':                  ['Palestine', 'West Bank'],
+    'Macedonia':                              ['North Macedonia'],
+    'United Arab Emirates':                   ['UAE'],
+}
+
+for canonical, aliases in ALIASES.items():
+    if canonical in climate_data:
+        for alias in aliases:
+            climate_data[alias] = climate_data[canonical]
+
+print(f'Added aliases → {len(climate_data)} total keys in JSON.')
+
 # ── 9. Save ───────────────────────────────────────────────────────────────────
 os.makedirs('data', exist_ok=True)
 out_path = 'data/climate_data.json'
