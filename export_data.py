@@ -56,7 +56,8 @@ print('\nComputing per-country statistics...')
 climate_data = {}
 
 for i, (name, number) in enumerate(zip(regions.names, regions.numbers)):
-    country_mask = (mask == i)
+    # mask values equal the region's .number, not the enumeration index
+    country_mask = (mask == number)
 
     # Skip countries with no land cells at 1° resolution
     if int(country_mask.sum()) == 0:
@@ -97,8 +98,8 @@ for i, (name, number) in enumerate(zip(regions.names, regions.numbers)):
                 'anomaly': round(float(anom[idx].mean()), 3),
             })
 
-    # ISO 3166-1 numeric key — matches world-atlas TopoJSON country IDs
-    climate_data[str(number)] = {
+    # Key by Natural Earth country name — matches the GeoJSON used in D3
+    climate_data[name] = {
         'name':       name,
         'anomaly':    round(overall_anomaly, 3),
         'baseline':   round(base_val, 2),
