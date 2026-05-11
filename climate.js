@@ -23,9 +23,12 @@
     .filter(n => !climateData[n]);
   if (missing.length) console.log('No climate data for:', missing);
 
-  const COLOR_DOMAIN  = [0, 3];
-  const colorScale    = d3.scaleSequential().domain(COLOR_DOMAIN).interpolator(d3.interpolateYlOrRd);
-  const NO_DATA_COLOR = '#e9ecef';
+  const BIN_THRESHOLDS = [0.5, 1.0, 1.5, 2.0, 2.5];
+  const BIN_COLORS     = d3.schemeYlOrRd[6];
+  const colorScale     = d3.scaleThreshold().domain(BIN_THRESHOLDS).range(BIN_COLORS);
+  const NO_DATA_COLOR  = '#e9ecef';
+
+  const BIN_LABELS = ['<0.5', '0.5–1.0', '1.0–1.5', '1.5–2.0', '2.0–2.5', '≥2.5'];
 
   function anomalyForRange(cd, y0, y1) {
     if (!cd || !cd.timeseries) return null;
@@ -112,17 +115,29 @@
 
   (function drawLegend() {
     const svg = d3.select('#legend-svg');
-    const W = 180, H = 14;
-    svg.attr('width', W).attr('height', H);
-    const defs = svg.append('defs');
-    const grad = defs.append('linearGradient').attr('id', 'leg-grad');
-    d3.range(11).forEach(i => {
-      grad.append('stop')
-        .attr('offset', `${i * 10}%`)
-        .attr('stop-color', colorScale(i * COLOR_DOMAIN[1] / 10));
+    const n   = BIN_COLORS.length;
+    const cellW = 36, cellH = 14, gap = 0;
+    const totalW = cellW * n;
+    svg.attr('width', totalW).attr('height', cellH + 14);
+
+    BIN_COLORS.forEach((color, i) => {
+      svg.append('rect')
+        .attr('x', i * (cellW + gap))
+        .attr('y', 0)
+        .attr('width', cellW)
+        .attr('height', cellH)
+        .attr('fill', color)
+        .attr('stroke', '#d0d7de')
+        .attr('stroke-width', 0.5);
+
+      svg.append('text')
+        .attr('x', i * (cellW + gap) + cellW / 2)
+        .attr('y', cellH + 11)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 9)
+        .attr('fill', '#656d76')
+        .text(BIN_LABELS[i]);
     });
-    svg.append('rect').attr('width', W).attr('height', H).attr('rx', 3)
-      .attr('fill', 'url(#leg-grad)');
   })();
 
   const mapSliderStart = document.getElementById('map-slider-start');
@@ -378,7 +393,7 @@
     const yMax = d3.max(data, d => d.anomaly) + 0.08;
     const y = d3.scaleLinear().domain([yMin, yMax]).nice().range([H, 0]);
 
-    const barColor = d3.scaleSequential().domain([0, 2.5]).interpolator(d3.interpolateYlOrRd);
+    const barColor = colorScale;
 
     g.append('g').selectAll('.grid-line')
       .data(y.ticks(5)).join('line').attr('class', 'grid-line')

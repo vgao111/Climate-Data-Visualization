@@ -32,9 +32,8 @@
           </div>
         </div>
         <div id="legend-wrap">
-          <span class="leg-label">0°C</span>
+          <span class="leg-title">Warming (°C)</span>
           <svg id="legend-svg"></svg>
-          <span class="leg-label">+3°C</span>
         </div>
       </div>
 
@@ -80,34 +79,31 @@
 
       <h3>Design Rationale</h3>
       <p>
-        We chose a <strong>choropleth world map</strong> as the entry point because warming is inherently a geographic phenomenon — readers immediately recognize their own country and can compare regions at a glance. A sequential yellow-to-red color scale (<code>d3.interpolateYlOrRd</code>) mirrors the intuitive "heat" metaphor: hotter colors mean more warming. We bounded the scale at 0–3°C because nearly every country falls in that range and it preserves visual contrast where it matters.
+        We chose a <strong>choropleth world map</strong> as the entry point because warming is inherently a geographic phenomenon — readers immediately recognize their own country and can compare regions at a glance. This allows to user to recognize the impact on a global scale and also at a local scale, the individual countries. A binned yellow-to-red color scale (<code>d3.interpolateYlOrRd</code>) mirrors the intuitive idea where hotter colors mean more warming. We bounded the scale at 0–3°C because nearly every country falls in that range and it preserves visual contrast where it matters.
       </p>
       <p>
-        For interaction, we considered a single static map, a globe (3D rotation), and a small-multiples grid. We rejected the static map because it can't show <em>how</em> a country got to its current anomaly. We rejected the globe because rotating to find a country adds friction without insight. Small multiples would have worked but doesn't let users compare specific time periods. The <strong>map → drill-down</strong> design gives readers an overview first, then a deep dive on demand — a pattern Shneiderman calls "overview, zoom and filter, details-on-demand."
+        For interaction, we considered a single static map, a globe and a small-multiples grid. We rejected the static map because it can't show <em>how</em> a country got to its current anomaly. We rejected the globe because rotating to find a country adds complexity in otherwise should be a straightforward visualization.
       </p>
       <p>
         We added a <strong>year-range slider on the map itself</strong> so viewers can ask their own questions: "Was the world already warming in 1950?" or "Which countries warmed first?" Rather than freezing the comparison period at 2000–2014, the slider re-colors the entire map in real time. The country detail view layers an annual line, a 10-year rolling mean, and a decadal bar chart so users can see year-to-year noise, long-term trend, and decadal acceleration in one place.
       </p>
       <p>
-        For visual appeal, we added a <strong>zoom animation</strong> when a country is clicked: the map smoothly zooms toward the country before transitioning to its detail view, giving readers a clear sense of moving "into" a place rather than jumping to an unrelated page. We chose a light, traditional-map aesthetic (light-blue ocean, soft grid lines) because climate is a serious topic and we wanted the data, not the chrome, to feel like the subject.
+        For visual appeal, we added a <strong>zoom animation</strong> when a country is clicked, the map smoothly zooms toward the country before transitioning to its detail view, giving readers a clear sense of moving "into" a place rather than jumping to an unrelated page. We chose a light, traditional-map aesthetic (light-blue ocean, soft grid lines) because climate is a serious topic and we wanted the data, not the chrome, to feel like the subject.
       </p>
 
       <h3>Development Process</h3>
       <p>
-        <strong>Team contributions.</strong> One member led the data pipeline (CMIP6 zarr loading, regionmask integration, country aggregation, and JSON export). The other led the front-end (D3 map, detail charts, interaction logic, and styling). Both members collaborated on choosing the question, the encoding, and the write-up.
+        <strong>Time spent.</strong> Roughly <strong> 25 people-hours</strong> total. The breakdown:
       </p>
       <p>
-        <strong>Time spent.</strong> Roughly <strong>30–35 people-hours</strong> total. The breakdown:
+        • <em>~All group members - 4 hours</em> understanding the dataset — The CMIP6 dataset is stored in zarr on Google Cloud and has non-trivial conventions (Kelvin, cftime calendars, 0–360° longitude, unequal grid-cell areas). So really understanding the structure and how to access the data was challenging in itself.<br>
+        • <em>~ All group members - 4 hours </em> on exploratory plots (matplotlib + Plotly) to find a question worth asking. The pattern of individual country level warming compared to a universal baseline time pointed us at the world-map idea.<br>
+        • <em>~ All group members - 6 hours</em> on the country-level aggregation like area-weighting with <code>areacella</code>, building the regionmask country grid, and resolving the dozens of name mismatches between regionmask's Natural Earth full names and the GeoJSON's short names (e.g. "United States of America" vs "USA").<br>
+        • <em>~ All group members - 6 hours</em> on the D3 visualization itself: map, color scale, tooltips, drill-down view, sliders, and the zoom animation.<br>
+        • <em>~ All group members - 5 hours</em> on styling, the write-up, and final polish.
       </p>
       <p>
-        • <em>~8 hours</em> understanding the dataset — CMIP6 is stored in zarr on Google Cloud and has non-trivial conventions (Kelvin, cftime calendars, 0–360° longitude, unequal grid-cell areas). Just getting a clean global-mean time series was the first hurdle.<br>
-        • <em>~6 hours</em> on exploratory plots (matplotlib + Plotly) to find a question worth asking. Polar amplification and the spread of country-level warming pointed us at the world-map idea.<br>
-        • <em>~10 hours</em> on the country-level aggregation — area-weighting with <code>areacella</code>, building the regionmask country grid, and resolving the dozens of name mismatches between regionmask's Natural Earth full names and the GeoJSON's short names (e.g. "United States of America" vs "USA").<br>
-        • <em>~8 hours</em> on the D3 visualization itself — map, color scale, tooltips, drill-down view, sliders, and the zoom animation.<br>
-        • <em>~3 hours</em> on styling, the write-up, and final polish.
-      </p>
-      <p>
-        <strong>Hardest part.</strong> Country name matching, by far. The CMIP6 data lives on a 192×288 grid that doesn't know about country boundaries; <code>regionmask</code> rasterizes Natural Earth polygons onto that grid using one naming convention, while the D3 GeoJSON we display uses a different one. After several rounds of console-debugging missing countries, we built a bidirectional alias dictionary in Python so every country in the visible map gets data. Small islands (Vatican, Singapore) still go uncolored because they're smaller than a single 1°×1° grid cell — an honest limitation of climate-model resolution, not a bug.
+        <strong>Most time consuming.</strong> Country name matching, by far. After several rounds of console-debugging missing countries, we built an alias dictionary in Python so every country in the visible map gets data. Small islands (Vatican, Singapore) still go uncolored because they're smaller than a single 1°×1° grid cell.
       </p>
     </section>
 

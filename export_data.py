@@ -1,19 +1,7 @@
-"""
-export_data.py — Run this in Google Colab to generate data/climate_data.json
-
-Paste all cells into a Colab notebook in order, or upload this file and run:
-  !python export_data.py
-
-Output: data/climate_data.json  (~1-2 MB)
-Then download it and place it in your project repo at: data/climate_data.json
-"""
-
-# ── 1. Install dependencies ───────────────────────────────────────────────────
 import subprocess
 subprocess.run(['pip', 'install', 'xarray', 'zarr', 'gcsfs', 'cftime',
                 'nc-time-axis', 'regionmask', '--quiet'], check=True)
 
-# ── 2. Imports ────────────────────────────────────────────────────────────────
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -22,12 +10,10 @@ import regionmask
 import json
 import os
 
-# ── 3. Load CMIP6 catalog ─────────────────────────────────────────────────────
 print('Loading CMIP6 catalog...')
 gcs = gcsfs.GCSFileSystem(token='anon')
 df  = pd.read_csv('https://storage.googleapis.com/cmip6/cmip6-zarr-consolidated-stores.csv')
 
-# ── 4. Open CESM2 historical tas ──────────────────────────────────────────────
 print('Opening CESM2 historical tas...')
 row = df.query(
     "activity_id=='CMIP' & table_id=='Amon' & variable_id=='tas'"
@@ -35,59 +21,48 @@ row = df.query(
 ).iloc[0]
 ds = xr.open_zarr(gcs.get_mapper(row.zstore), consolidated=True)
 
-# ── 5. Load area weights ──────────────────────────────────────────────────────
 print('Loading area weights...')
 area_row = df.query("variable_id=='areacella' & source_id=='CESM2'").iloc[0]
 ds_area  = xr.open_zarr(gcs.get_mapper(area_row.zstore), consolidated=True)
 
-# ── 6. Build country mask ─────────────────────────────────────────────────────
 print('Building country mask over CMIP6 grid...')
 regions = regionmask.defined_regions.natural_earth_v5_0_0.countries_110
-mask    = regions.mask(ds.lon.values, ds.lat.values)   # shape (192, 288)
+mask    = regions.mask(ds.lon.values, ds.lat.values)
 
-# ── 7. Load full annual grid (one big download ~36 MB) ───────────────────────
 print('Loading annual temperature grid (this may take ~1 minute)...')
-tas_ann = ds.tas.resample(time='YE').mean().load()     # shape (165, 192, 288)
+tas_ann = ds.tas.resample(time='YE').mean().load()
 years   = tas_ann.time.dt.year.values
 print(f'  Loaded {len(years)} years  ({years[0]}–{years[-1]})')
 
-# ── 8. Compute per-country statistics ─────────────────────────────────────────
 print('\nComputing per-country statistics...')
 climate_data = {}
 
 for i, (name, number) in enumerate(zip(regions.names, regions.numbers)):
-    # mask values equal the region's .number, not the enumeration index
     country_mask = (mask == number)
 
-    # Skip countries with no land cells at 1° resolution
     if int(country_mask.sum()) == 0:
         continue
 
-    # Area-weighted annual mean temperature
     w       = ds_area.areacella.where(country_mask)
     total_w = float(w.sum())
     if total_w == 0:
         continue
 
     annual_k = (tas_ann.where(country_mask) * w).sum(dim=['lat', 'lon']) / total_w
-    annual_c = annual_k.values - 273.15          # Kelvin → Celsius
+    annual_c = annual_k.values - 273.15
 
-    # 1850–1900 baseline mean
     base_idx = years <= 1900
     base_val = float(annual_c[base_idx].mean())
-    anom     = annual_c - base_val               # anomaly array
+    anom     = annual_c - base_val
 
-    # Single summary anomaly: 2000–2014 mean vs baseline
     recent_idx      = (years >= 2000) & (years <= 2014)
     overall_anomaly = float(anom[recent_idx].mean())
 
-    # Annual time series
     timeseries = [
         {'year': int(y), 'temp': round(float(t), 2), 'anomaly': round(float(a), 3)}
         for y, t, a in zip(years, annual_c, anom)
     ]
 
-    # Decadal means
     decadal = []
     for d_start in range(1850, 2015, 10):
         idx = (years >= d_start) & (years < d_start + 10)
@@ -98,7 +73,6 @@ for i, (name, number) in enumerate(zip(regions.names, regions.numbers)):
                 'anomaly': round(float(anom[idx].mean()), 3),
             })
 
-    # Key by Natural Earth country name — matches the GeoJSON used in D3
     climate_data[name] = {
         'name':       name,
         'anomaly':    round(overall_anomaly, 3),
@@ -112,10 +86,7 @@ for i, (name, number) in enumerate(zip(regions.names, regions.numbers)):
 
 print(f'\nProcessed {len(climate_data)} countries with data.')
 
-# ── 8b. Add aliases for name mismatches between regionmask and the GeoJSON ───
-# regionmask uses full Natural Earth names; the D3 GeoJSON uses short names.
 ALIASES = {
-    # Full name → short/alternate name used in the D3 GeoJSON
     'United States of America':               ['USA', 'United States'],
     'Russian Federation':                     ['Russia'],
     'Russia':                                 ['Russian Federation'],
@@ -190,16 +161,11 @@ for canonical, aliases in ALIASES.items():
 
 print(f'Added aliases → {len(climate_data)} total keys in JSON.')
 
-# ── 9. Save ───────────────────────────────────────────────────────────────────
 os.makedirs('data', exist_ok=True)
 out_path = 'data/climate_data.json'
 with open(out_path, 'w') as f:
-    json.dump(climate_data, f, separators=(',', ':'))   # compact JSON
+    json.dump(climate_data, f, separators=(',', ':'))
 
 size_kb = os.path.getsize(out_path) / 1024
 print(f'Saved → {out_path}  ({size_kb:.0f} KB)')
 print('\nNext step: download this file and put it in your project repo at data/climate_data.json')
-
-# Uncomment to auto-download in Colab:
-# from google.colab import files
-# files.download(out_path)
