@@ -1,6 +1,5 @@
 (async function () {
 
-  // ── Load data ──────────────────────────────────────────────────────────────
   const GEO_URL = 'https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/DATA/world.geojson';
 
   let geoData, climateData;
@@ -19,19 +18,15 @@
 
   const countries = geoData;
 
-  // Debug missing countries (after aliases)
   const missing = geoData.features
     .map(f => f.properties.name)
     .filter(n => !climateData[n]);
   if (missing.length) console.log('No climate data for:', missing);
 
-  // ── Color scale ────────────────────────────────────────────────────────────
   const COLOR_DOMAIN  = [0, 3];
   const colorScale    = d3.scaleSequential().domain(COLOR_DOMAIN).interpolator(d3.interpolateYlOrRd);
   const NO_DATA_COLOR = '#e9ecef';
 
-  // ── Dynamic anomaly per year range ─────────────────────────────────────────
-  // anomalies in climate_data.json are already relative to the 1850–1900 baseline
   function anomalyForRange(cd, y0, y1) {
     if (!cd || !cd.timeseries) return null;
     const inRange = cd.timeseries.filter(t => t.year >= y0 && t.year <= y1);
@@ -39,7 +34,6 @@
     return d3.mean(inRange, t => t.anomaly);
   }
 
-  // ── State ──────────────────────────────────────────────────────────────────
   let mapYearStart = 2000;
   let mapYearEnd   = 2014;
 
@@ -48,12 +42,11 @@
   let yearStart     = 1850;
   let yearEnd       = 2014;
 
-  // ── World Map ──────────────────────────────────────────────────────────────
   const mapSvg  = d3.select('#world-map');
   const mapNode = mapSvg.node();
 
-  let mapG;          // <g> wrapping graticule + sphere + countries (for zoom)
-  let mapW, mapH;    // current size
+  let mapG;
+  let mapW, mapH;
   let projection;
   let pathGen;
 
@@ -68,16 +61,13 @@
 
     mapSvg.selectAll('*').remove();
 
-    // Ocean (NOT inside zoom group — stays fixed during zoom)
     mapSvg.append('rect')
       .attr('class', 'ocean')
       .attr('width', mapW).attr('height', mapH)
       .attr('fill', '#d8e9f5');
 
-    // Zoom group — everything below transforms together on click
     mapG = mapSvg.append('g').attr('class', 'map-g');
 
-    // Graticule
     mapG.append('path')
       .datum(d3.geoGraticule()())
       .attr('d', pathGen)
@@ -85,7 +75,6 @@
       .attr('stroke', '#b1c9da')
       .attr('stroke-width', 0.4);
 
-    // Sphere border
     mapG.append('path')
       .datum({ type: 'Sphere' })
       .attr('d', pathGen)
@@ -93,7 +82,6 @@
       .attr('stroke', '#7ea9c2')
       .attr('stroke-width', 0.8);
 
-    // Countries
     mapG.selectAll('.country')
       .data(countries.features)
       .join('path')
@@ -122,7 +110,6 @@
   buildMap();
   window.addEventListener('resize', buildMap);
 
-  // ── Legend ─────────────────────────────────────────────────────────────────
   (function drawLegend() {
     const svg = d3.select('#legend-svg');
     const W = 180, H = 14;
@@ -138,7 +125,6 @@
       .attr('fill', 'url(#leg-grad)');
   })();
 
-  // ── Map year-range slider ──────────────────────────────────────────────────
   const mapSliderStart = document.getElementById('map-slider-start');
   const mapSliderEnd   = document.getElementById('map-slider-end');
   const mapYearStartEl = document.getElementById('map-year-start');
@@ -158,7 +144,6 @@
   mapSliderStart.addEventListener('input', onMapSlider);
   mapSliderEnd  .addEventListener('input', onMapSlider);
 
-  // ── Tooltip ────────────────────────────────────────────────────────────────
   const tooltip = document.getElementById('tooltip');
 
   function onMouseOver(event, d) {
@@ -183,15 +168,13 @@
     tooltip.classList.remove('visible');
   }
 
-  // ── Country click → zoom animation → drill-down ───────────────────────────
   function onCountryClick(event, d) {
     const cd = climateData[d.properties.name];
     if (!cd) return;
 
     tooltip.classList.remove('visible');
 
-    // Compute zoom transform to focus on this country
-    const bounds = pathGen.bounds(d);                    // [[x0,y0],[x1,y1]]
+    const bounds = pathGen.bounds(d);
     const bw = bounds[1][0] - bounds[0][0];
     const bh = bounds[1][1] - bounds[0][1];
     const cx = (bounds[0][0] + bounds[1][0]) / 2;
@@ -200,13 +183,11 @@
     const tx = mapW / 2 - cx * scale;
     const ty = mapH / 2 - cy * scale;
 
-    // Animate the zoom group
     mapG.transition()
       .duration(750)
       .ease(d3.easeCubicInOut)
       .attr('transform', `translate(${tx},${ty}) scale(${scale})`);
 
-    // Fade out other countries, highlight clicked one
     mapG.selectAll('.country')
       .filter(o => o !== d)
       .transition().duration(500).attr('opacity', 0.25);
@@ -217,7 +198,6 @@
       .attr('stroke', '#1f2328')
       .attr('stroke-width', 0.3);
 
-    // After zoom, cross-fade into detail view
     setTimeout(() => {
       activeCountry = cd;
       yearStart = 1850;
@@ -238,7 +218,6 @@
       document.querySelector('[data-metric="annual"]').classList.add('active');
       currentMetric = 'annual';
 
-      // Cross-fade
       const mv = document.getElementById('map-view');
       const dv = document.getElementById('detail-view');
       mv.classList.add('fading-out');
@@ -252,7 +231,6 @@
     }, 700);
   }
 
-  // ── Back button → reverse animation ───────────────────────────────────────
   document.getElementById('back-btn').addEventListener('click', () => {
     const mv = document.getElementById('map-view');
     const dv = document.getElementById('detail-view');
@@ -260,11 +238,9 @@
     dv.classList.remove('visible');
     setTimeout(() => {
       mv.classList.remove('hidden');
-      // Force reflow before opacity transition
       mv.offsetHeight;
       mv.classList.remove('fading-out');
 
-      // Reset zoom group
       mapG.transition()
         .duration(700)
         .ease(d3.easeCubicInOut)
@@ -280,7 +256,6 @@
     }, 350);
   });
 
-  // ── Metric tabs ────────────────────────────────────────────────────────────
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -290,7 +265,6 @@
     });
   });
 
-  // ── Detail-view year sliders ───────────────────────────────────────────────
   document.getElementById('slider-start').addEventListener('input', function () {
     yearStart = +this.value;
     if (yearStart > yearEnd) { yearStart = yearEnd; this.value = yearStart; }
@@ -305,7 +279,6 @@
     if (activeCountry) drawDetailChart();
   });
 
-  // ── Detail chart dispatcher ────────────────────────────────────────────────
   function drawDetailChart() {
     const svgEl  = document.getElementById('detail-chart');
     const totalW = svgEl.clientWidth || 860;
@@ -325,7 +298,6 @@
     else                             drawDecadal(g, W, H);
   }
 
-  // ── Annual anomaly line chart ──────────────────────────────────────────────
   function drawAnnual(g, W, H) {
     const data = activeCountry.timeseries.filter(d => d.year >= yearStart && d.year <= yearEnd);
     if (data.length === 0) return;
@@ -397,7 +369,6 @@
     leg.append('text').attr('class', 'legend-text').attr('x', 22).attr('y', 30).text('10-yr rolling mean');
   }
 
-  // ── Decadal bar chart ──────────────────────────────────────────────────────
   function drawDecadal(g, W, H) {
     const data = activeCountry.decadal.filter(d => d.year >= yearStart && d.year <= yearEnd);
     if (data.length === 0) return;
@@ -453,7 +424,6 @@
       .text('Anomaly vs 1850–1900 (°C)');
   }
 
-  // ── Centered rolling mean ──────────────────────────────────────────────────
   function rollingMean(data, w) {
     const half = Math.floor(w / 2);
     return data.map((d, i) => {
